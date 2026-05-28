@@ -1,16 +1,7 @@
-import os
 from flask import Flask
-from config import Config
 
-def create_app():
-    base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    template_dir = os.path.join(base_dir, 'templates')
-    static_dir = os.path.join(base_dir, 'static')
+app = Flask(__name__)
+app.secret_key = 'super-secret-mining-key-123' # Секретный ключ обязателен для работы сессий игрока!
 
-    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-    app.config.from_object(Config)
-
-    from app.routes import bp
-    app.register_blueprint(bp)
-
-    return app
+# Импорт роутов пишется в самом конце, когда объект app уже создан
+from app import routes

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛏️ Квантовый Майнер Руд</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div id="game-notification" class="game-notification"></div>
+
+    <!-- Модальное окно: Повышение уровня -->
+    <div id="level-up-modal" class="modal-overlay">
+        <div class="modal-content level-up-box">
+            <h2>🎉 НОВЫЙ УРОВЕНЬ! 🎉</h2>
+            <p>Вы достигли <span id="modal-new-level">2</span> уровня!</p>
+            <p class="desc">Разблокированы новые руды и улучшения в магазине.</p>
+            <button onclick="closeModal('level-up-modal')" class="modal-close-btn">Отлично!</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Мини-игра "Бегущая руда" -->
+    <div id="runner-modal" class="modal-overlay">
+        <div class="modal-content minigame-box">
+            <h2>🏃 БЕГУЩАЯ РУДА! 🏃</h2>
+            <p>Прыгай через динамиты! Нажимай <b>ПРОБЕЛ</b> или Кликай мышкой.</p>
+            <div class="canvas-wrapper">
+                <canvas id="runnerCanvas" width="500" height="150"></canvas>
+            </div>
+            <p id="runner-status">Приготовься...</p>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Мини-игра "Три Тоннеля" -->
+    <div id="tunnels-modal" class="modal-overlay">
+        <div class="modal-content minigame-box">
+            <h2>🪵 ТРИ ТОННЕЛЯ 🪵</h2>
+            <p>В одном из проходов спрятан ценный сундук. Выбери верный путь!</p>
+            <div class="tunnels-container">
+                <div class="tunnel-card" onclick="chooseTunnel(0)">🚪<br>Левый</div>
+                <div class="tunnel-card" onclick="chooseTunnel(1)">🚪<br>Центр</div>
+                <div class="tunnel-card" onclick="chooseTunnel(2)">🚪<br>Правый</div>
+            </div>
+            <p id="tunnels-status"></p>
+        </div>
+    </div>
+
+    <div class="game-container">
+
+        <!-- ЛЕВАЯ ПАНЕЛЬ: Профиль шахтера и Статистика -->
+        <div class="panel left-panel">
+            <div class="stat-section">
+                <h3>📊 Шахтер</h3>
+                <div class="player-stat-row balance-wrapper">
+                    Баланс:
+                    <span class="accent-text">
+                        <img src="{{ url_for('static', filename='images/coin.png') }}" class="coin-icon" alt="Coins">
+                        <span id="coins-display">{{ player.coins }}</span>
+                    </span>
+                </div>
+                <div class="player-stat-row">Уровень: <span id="level-display">{{ player.level }}</span></div>
+                <div class="xp-container">
+                    <div class="xp-text-wrapper"><span>Опыт:</span> <span id="xp-text">0 / 100</span></div>
+                    <div class="xp-bar-outer"><div id="xp-bar-inner"></div></div>
+                </div>
+            </div>
+            <div class="info-section" style="margin-top: 20px; color: #64748b; font-size: 13px; line-height: 1.5;">
+                <p>⛏️ Каждый клик приближает вас к редким материалам.</p>
+                <p>🤖 Покупайте авто-буровую для автоматизации добычи.</p>
+                <p>🎰 При поломке руды есть шанс активировать призовую мини-игру!</p>
+            </div>
+        </div>
+
+        <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Рабочая зона шахты -->
+        <div class="panel center-panel">
+            <div class="panel-header">
+                <h2>КВАНТОВАЯ ШАХТА</h2>
+            </div>
+
+            <div class="rock-card-wrapper" id="click-zone">
+                <div class="rock-card" id="rock-card">
+                    <h3 id="rock-name">{{ player.current_stone.name }}</h3>
+                    <div class="rock-visual">
+                        <img id="rock-image" src="/static/images/{{ player.current_stone.id }}.png" onerror="this.onerror=null; this.src='/static/images/stone.png';">
+                    </div>
+                    <div class="hp-bar-container">
+                        <div id="hp-bar" style="width: 100%;"></div>
+                    </div>
+                    <p class="hp-text">Прочность: <span id="rock-hp">{{ player.current_stone.hp }}</span> HP</p>
+                </div>
+            </div>
+
+            <button id="rock-click-btn" class="rock-btn">УДАР КИРКОЙ!</button>
+            <div class="active-weapon">
+                🔨 Сила: <span id="current-power">{{ player.power }}</span>
+                | 🎒 Место: <span id="bag-count">0</span>/<span id="bag-max">20</span>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: Универсальное меню (Инвентарь, Магазин, Коллекция) -->
+        <div class="panel right-panel">
+            <!-- Кнопки-иконки переключения табов -->
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="tab-inventory">🎒 Инвентарь</button>
+                <button class="tab-btn" data-tab="tab-shop">🏪 Магазин</button>
+                <button class="tab-btn" data-tab="tab-collection">🏆 Витрина</button>
+            </div>
+
+            <!-- СОДЕРЖИМОЕ: Инвентарь -->
+            <div id="tab-inventory" class="tab-content active">
+                <button id="sell-all-btn" class="sell-btn">
+                    <img src="{{ url_for('static', filename='images/coin.png') }}" class="coin-icon button-icon" alt="Coin">
+                    Продать все ресурсы
+                </button>
+                <div class="inventory-list" id="inventory-ui-list">
+                    </div>
+            </div>
+
+            <!-- СОДЕРЖИМОЕ: Магазин улучшений -->
+            <div id="tab-shop" class="tab-content">
+                <div class="shop-list">
+                    <div class="shop-card" id-upgrade="power">
+                        <div>
+                            <div class="shop-card-title">🔨 Заточка Кирки</div>
+                            <div class="shop-card-desc">Сила клика +1 урон</div>
+                        </div>
+                        <button class="buy-btn" data-type="power" id="upgrade-power-btn">100 🪙</button>
+                    </div>
+                    <div class="shop-card locked" id-upgrade="bag" data-req="2">
+                        <div>
+                            <div class="shop-card-title">🎒 Вместимость рюкзака</div>
+                            <div class="shop-card-desc">Лимит места (+20 ед.)</div>
+                        </div>
+                        <button class="buy-btn" data-type="bag" id="upgrade-bag-btn">150 🪙</button>
+                    </div>
+                    <div class="shop-card locked" id-upgrade="luck" data-req="3">
+                        <div>
+                            <div class="shop-card-title">🍀 Квантовая Удача</div>
+                            <div class="shop-card-desc">Редкие руды + Шанс крита (х3)</div>
+                        </div>
+                        <button class="buy-btn" data-type="luck" id="upgrade-luck-btn">250 🪙</button>
+                    </div>
+                    <div class="shop-card locked" id-upgrade="auto" data-req="4">
+                        <div>
+                            <div class="shop-card-title">⚙️ Авто-буровая</div>
+                            <div class="shop-card-desc">Авто-добыча каждую секунду</div>
+                        </div>
+                        <button class="buy-btn" data-type="auto" id="upgrade-auto-btn">300 🪙</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- СОДЕРЖИМОЕ: Коллекция -->
+            <div id="tab-collection" class="tab-content">
+                <div class="collection-grid" id="collection-ui-grid">
+                    <!-- Заполняется динамически через JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const ROCKS_CONFIG_DATA = {{ rocks_config|tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
