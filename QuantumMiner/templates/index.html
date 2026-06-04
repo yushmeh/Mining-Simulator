@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛏ QUANTUM MINER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<!-- MODAL: LEVEL UP -->
+<div id="modal-levelup" class="modal-veil">
+    <div class="modal-panel modal-levelup">
+        <div class="modal-glow"></div>
+        <div class="levelup-badge">▲ LEVEL UP ▲</div>
+        <div class="levelup-number" id="modal-new-level">2</div>
+        <p class="levelup-sub">Новые руды и апгрейды разблокированы</p>
+        <button class="btn-primary" onclick="closeModal('modal-levelup')">ПРОДОЛЖИТЬ</button>
+    </div>
+</div>
+
+<!-- MODAL: PRESTIGE -->
+<div id="modal-prestige" class="modal-veil">
+    <div class="modal-panel modal-prestige-box">
+        <div class="modal-glow"></div>
+        <div class="levelup-badge" style="color:var(--purple)">⭐ ПРЕСТИЖ ⭐</div>
+        <p style="font-size:15px;color:var(--text-secondary);margin:16px 0 8px">Сбросить прогресс в обмен на:</p>
+        <ul class="prestige-perks">
+            <li>✦ Постоянный бонус ×0.5 к удаче за каждый престиж</li>
+            <li>✦ Сохранить 10% монет</li>
+            <li>✦ Значок престижа в профиле</li>
+        </ul>
+        <div class="prestige-cost-line">Стоимость: <span id="prestige-cost-modal" class="gold">50 000</span> монет</div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:20px">
+            <button class="btn-primary" id="confirm-prestige-btn">⭐ ПОДТВЕРДИТЬ</button>
+            <button class="btn-cancel" onclick="closeModal('modal-prestige')">ОТМЕНА</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RUNNER -->
+<div id="modal-runner" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>БЕГУЩАЯ РУДА</h2>
+            <p>Прыгай через динамиты — <kbd>ПРОБЕЛ</kbd> или клик</p>
+        </div>
+        <canvas id="runnerCanvas" width="520" height="160"></canvas>
+        <p id="runner-status" class="minigame-status">Приготовься...</p>
+    </div>
+</div>
+
+<!-- MODAL: TUNNELS -->
+<div id="modal-tunnels" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>ТРИ ТОННЕЛЯ</h2>
+            <p>В одном из проходов — сундук с сокровищами</p>
+        </div>
+        <div class="tunnels-row">
+            <button class="tunnel-door" onclick="chooseTunnel(0)"><span>◀</span>ЛЕВЫЙ</button>
+            <button class="tunnel-door tunnel-center" onclick="chooseTunnel(1)"><span>▲</span>ЦЕНТР</button>
+            <button class="tunnel-door" onclick="chooseTunnel(2)"><span>▶</span>ПРАВЫЙ</button>
+        </div>
+        <p id="tunnels-status" class="minigame-status"></p>
+    </div>
+</div>
+
+<!-- MODAL: STOPBAR -->
+<div id="modal-stopbar" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>ТОЧНЫЙ УДАР</h2>
+            <p>Останови шкалу в <span style="color:var(--green)">зелёной зоне</span> — нажми <kbd>ПРОБЕЛ</kbd> или кнопку</p>
+        </div>
+        <div class="stopbar-wrap">
+            <div class="stopbar-track">
+                <div class="stopbar-zone"></div>
+                <div class="stopbar-cursor" id="stopbar-cursor"></div>
+            </div>
+        </div>
+        <button class="btn-primary" id="stopbar-btn" style="margin-top:20px">СТОП!</button>
+        <p id="stopbar-status" class="minigame-status"></p>
+    </div>
+</div>
+
+<!-- MODAL: MINESWEEPER -->
+<div id="modal-minesweeper" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>САПЁР</h2>
+            <p>Открой 5 безопасных клеток. Мин: 3 из 16</p>
+        </div>
+        <div class="minesweeper-grid" id="minesweeper-grid"></div>
+        <p id="minesweeper-status" class="minigame-status">Открой 5 клеток без мин!</p>
+    </div>
+</div>
+
+<!-- MODAL: RAPID CLICK -->
+<div id="modal-rapidclick" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>БЫСТРЫЕ КЛИКИ</h2>
+            <p>Нажми кнопку <span style="color:var(--gold)">15 раз</span> за 3 секунды!</p>
+        </div>
+        <div class="rapid-counter" id="rapid-counter">0 / 15</div>
+        <div class="bar-track" style="margin:12px 0">
+            <div class="bar-fill bar-xp" id="rapid-timer-bar" style="width:100%"></div>
+        </div>
+        <button class="btn-strike" id="rapid-btn"><span class="btn-strike-inner">БЕЙ!</span></button>
+        <p id="rapid-status" class="minigame-status"></p>
+    </div>
+</div>
+
+<!-- MODAL: CODE SAFE -->
+<div id="modal-codesafe" class="modal-veil">
+    <div class="modal-panel minigame-panel">
+        <div class="minigame-header">
+            <span class="minigame-tag">МИНИ-ИГРА</span>
+            <h2>ЧИСЛОВОЙ СЕЙФ</h2>
+            <p>Угадай 3-значный код за 4 попытки</p>
+        </div>
+        <div class="safe-attempts" id="safe-attempts"></div>
+        <div class="safe-input-row">
+            <input class="safe-input" id="safe-input" type="number" min="100" max="999" placeholder="???">
+            <button class="btn-buy" id="safe-guess-btn">ВВОД</button>
+        </div>
+        <p id="safe-status" class="minigame-status">Попыток осталось: <span id="safe-tries">4</span></p>
+    </div>
+</div>
+
+<!-- ════════════ MAIN LAYOUT ════════════ -->
+<div class="layout">
+
+    <!-- LEFT PANEL -->
+    <aside class="panel panel-left">
+        <div class="panel-label">ШАХТЁР</div>
+
+        <div class="stat-block">
+            <div class="stat-row">
+                <span class="stat-key">БАЛАНС</span>
+                <span class="stat-val gold" id="coins-display">{{ player.coins }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">УРОВЕНЬ</span>
+                <span class="stat-val cyan" id="level-display">{{ player.level }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">СИЛА</span>
+                <span class="stat-val" id="current-power">{{ player.power }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">УДАЧА</span>
+                <span class="stat-val purple" id="luck-display">{{ player.luck }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">АВТО-БУР</span>
+                <span class="stat-val" id="auto-display">{{ player.auto_level }}</span>
+            </div>
+            <div class="stat-row" id="prestige-row" style="display:none">
+                <span class="stat-key">ПРЕСТИЖ</span>
+                <span class="stat-val" style="color:var(--purple)" id="prestige-display">0</span>
+            </div>
+        </div>
+
+        <div class="xp-wrap">
+            <div class="xp-labels"><span>ОПЫТ</span><span id="xp-text">0 / 100</span></div>
+            <div class="bar-track"><div class="bar-fill bar-xp" id="xp-bar"></div></div>
+        </div>
+        <div class="xp-wrap">
+            <div class="xp-labels"><span>РЮКЗАК</span><span><span id="bag-count">0</span> / <span id="bag-max">20</span></span></div>
+            <div class="bar-track"><div class="bar-fill bar-bag" id="bag-bar"></div></div>
+        </div>
+
+        <!-- Market ticker -->
+        <div class="market-widget">
+            <div class="market-label">📈 РЫНОК <span id="market-timer" class="market-timer">5:00</span></div>
+            <div id="market-list" class="market-list"></div>
+        </div>
+
+        <div class="side-hints">
+            <div class="hint-item">⛏ Каждый удар — шанс на редкость</div>
+            <div class="hint-item">💥 Взрывчатка: каждый N-й удар ×10</div>
+            <div class="hint-item">🧲 Магнит: шанс двойной добычи</div>
+        </div>
+    </aside>
+
+    <!-- CENTER PANEL -->
+    <main class="panel panel-center">
+        <div class="panel-label">КВАНТОВАЯ ШАХТА</div>
+
+        <!-- Scanner hint -->
+        <div id="scanner-hint" class="scanner-hint" style="display:none">
+            🔭 Следующая руда: <span id="scanner-rock-name">?</span>
+        </div>
+
+        <div class="rock-zone" id="click-zone">
+            <div class="rock-halo" id="rock-halo"></div>
+            <div class="rock-card" id="rock-card">
+                <div class="rock-name" id="rock-name">{{ player.current_stone.name }}</div>
+                <div class="rock-img-wrap">
+                    <img id="rock-image"
+                         src="/static/images/{{ player.current_stone.id }}.png"
+                         onerror="this.onerror=null;this.src='/static/images/stone.png'">
+                </div>
+                <div class="rock-hp-row">
+                    <div class="bar-track rock-hp-track">
+                        <div class="bar-fill bar-hp" id="hp-bar" style="width:100%"></div>
+                    </div>
+                    <span class="rock-hp-val" id="rock-hp">{{ player.current_stone.hp }}</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="mine-btn" class="btn-strike">
+            <span class="btn-strike-inner">⛏ УДАР КИРКОЙ</span>
+        </button>
+
+        <!-- Prestige button -->
+        <button id="prestige-btn" class="btn-prestige" style="display:none">
+            ⭐ ПРЕСТИЖ — <span id="prestige-cost">50 000</span> монет
+        </button>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="panel panel-right">
+        <nav class="tabs">
+            <button class="tab active" data-tab="tab-inventory">ИНВЕНТАРЬ</button>
+            <button class="tab" data-tab="tab-shop">МАГАЗИН</button>
+            <button class="tab" data-tab="tab-collection">ВИТРИНА</button>
+        </nav>
+
+        <!-- INVENTORY -->
+        <div id="tab-inventory" class="tab-pane active">
+            <button id="sell-btn" class="btn-sell">▶ ПРОДАТЬ ВСЁ</button>
+            <div id="inventory-list" class="inv-list"></div>
+        </div>
+
+        <!-- SHOP -->
+        <div id="tab-shop" class="tab-pane">
+            <div class="shop-grid">
+                <!-- Базовые -->
+                <div class="shop-card" data-type="power" data-req="1">
+                    <div class="shop-icon">🔨</div>
+                    <div class="shop-info"><div class="shop-name">Заточка кирки</div><div class="shop-desc">Сила удара +1</div></div>
+                    <button class="btn-buy" data-type="power">100 ◈</button>
+                </div>
+                <div class="shop-card" data-type="bag" data-req="2">
+                    <div class="shop-icon">🎒</div>
+                    <div class="shop-info"><div class="shop-name">Вместимость</div><div class="shop-desc">+20 слотов рюкзака</div></div>
+                    <button class="btn-buy" data-type="bag">150 ◈</button>
+                </div>
+                <div class="shop-card" data-type="luck" data-req="3">
+                    <div class="shop-icon">🍀</div>
+                    <div class="shop-info"><div class="shop-name">Квантовая удача</div><div class="shop-desc">Редкость + крит ×3</div></div>
+                    <button class="btn-buy" data-type="luck">250 ◈</button>
+                </div>
+                <div class="shop-card" data-type="auto" data-req="4">
+                    <div class="shop-icon">⚙️</div>
+                    <div class="shop-info"><div class="shop-name">Авто-буровая</div><div class="shop-desc">Авто-добыча /сек</div></div>
+                    <button class="btn-buy" data-type="auto">300 ◈</button>
+                </div>
+                <!-- Новые -->
+                <div class="shop-card" data-type="explosive" data-req="5">
+                    <div class="shop-icon">💥</div>
+                    <div class="shop-info"><div class="shop-name">Взрывчатка</div><div class="shop-desc">Каждый N-й удар ×10 урона</div></div>
+                    <button class="btn-buy" data-type="explosive">500 ◈</button>
+                </div>
+                <div class="shop-card" data-type="scanner" data-req="5">
+                    <div class="shop-icon">🔭</div>
+                    <div class="shop-info"><div class="shop-name">Сканер руд</div><div class="shop-desc">Видно следующую руду</div></div>
+                    <button class="btn-buy" data-type="scanner">800 ◈</button>
+                </div>
+                <div class="shop-card" data-type="smelter" data-req="6">
+                    <div class="shop-icon">⚗️</div>
+                    <div class="shop-info"><div class="shop-name">Плавильня</div><div class="shop-desc">Авто-продажа дешёвых руд</div></div>
+                    <button class="btn-buy" data-type="smelter">600 ◈</button>
+                </div>
+                <div class="shop-card" data-type="magnet" data-req="7">
+                    <div class="shop-icon">🧲</div>
+                    <div class="shop-info"><div class="shop-name">Магнит</div><div class="shop-desc">Шанс двойной добычи</div></div>
+                    <button class="btn-buy" data-type="magnet">1000 ◈</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLLECTION -->
+        <div id="tab-collection" class="tab-pane">
+            <div id="collection-grid" class="col-grid"></div>
+        </div>
+    </aside>
+
+</div>
+
+<script>const ROCKS_CONFIG_DATA = {{ rocks_config | tojson }};</script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>
